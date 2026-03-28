@@ -34,6 +34,9 @@ export default function AdminPage() {
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
   const [total, setTotal] = useState(0);
+  const [teacherPage, setTeacherPage] = useState(1);
+  const [teacherLimit, setTeacherLimit] = useState(10);
+  const [teacherTotal, setTeacherTotal] = useState(0);
 
   const [studentForm, setStudentForm] = useState<StudentInput>({
     name: "",
@@ -47,9 +50,11 @@ export default function AdminPage() {
   });
 
   const [editingStudentId, setEditingStudentId] = useState<string>("");
+  const [editingTeacherId, setEditingTeacherId] = useState<string>("");
   const [assignTeacherId, setAssignTeacherId] = useState<string>("");
   const [assignmentYear, setAssignmentYear] = useState<number>(new Date().getFullYear());
   const [assignmentSection, setAssignmentSection] = useState<string>("A");
+  const [teacherForm, setTeacherForm] = useState({ name: "", email: "", password: "", branch: "" });
 
   const fetchStudents = async (currentPage = page) => {
     try {
@@ -64,10 +69,12 @@ export default function AdminPage() {
     }
   };
 
-  const fetchTeachers = async () => {
+  const fetchTeachers = async (currentPage = teacherPage) => {
     try {
-      const res = await api.get("/teachers");
-      setTeachers(res.data || []);
+      const res = await api.get("/teachers", { params: { page: currentPage, limit: teacherLimit } });
+      setTeachers(res.data.teachers || []);
+      setTeacherTotal(res.data.total || 0);
+      setTeacherPage(currentPage);
     } catch (err: any) {
       const msg = err.response?.data?.message || "Failed to load teachers";
       setError(msg);
@@ -78,7 +85,7 @@ export default function AdminPage() {
   useEffect(() => {
     const loadAll = async () => {
       setLoading(true);
-      await Promise.all([fetchStudents(1), fetchTeachers()]);
+      await Promise.all([fetchStudents(1), fetchTeachers(1)]);
       setLoading(false);
     };
     loadAll();
@@ -142,12 +149,70 @@ export default function AdminPage() {
     }
   };
 
+  const createTeacher = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setSuccess("");
+    try {
+      const res = await api.post("/auth/register/admin", { ...teacherForm, role: "teacher" });
+      await fetchTeachers(teacherPage);
+      setSuccess("Teacher created successfully.");
+      toast({ variant: "success", title: "Teacher added", description: "Teacher was added successfully." });
+      setTeacherForm({ name: "", email: "", password: "", branch: "" });
+    } catch (err: any) {
+      const msg = err.response?.data?.message || "Failed to create teacher";
+      setError(msg);
+      toast({ variant: "error", title: "Create teacher failed", description: msg });
+    }
+  };
+
+  const editTeacher = (teacher: any) => {
+    setEditingTeacherId(teacher._id);
+    setTeacherForm({
+      name: teacher.userId?.name || "",
+      email: teacher.userId?.email || "",
+      password: "",
+      branch: teacher.branch || ""
+    });
+  };
+
+  const updateTeacher = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingTeacherId) return;
+
+    try {
+      const res = await api.put(`/teachers/${editingTeacherId}`, { branch: teacherForm.branch });
+      await fetchTeachers(teacherPage);
+      setSuccess("Teacher updated successfully.");
+      toast({ variant: "success", title: "Teacher updated", description: "Teacher profile updated." });
+      setEditingTeacherId("");
+      setTeacherForm({ name: "", email: "", password: "", branch: "" });
+    } catch (err: any) {
+      const msg = err.response?.data?.message || "Failed to update teacher";
+      setError(msg);
+      toast({ variant: "error", title: "Update failed", description: msg });
+    }
+  };
+
+  const deleteTeacher = async (id: string) => {
+    try {
+      await api.delete(`/teachers/${id}`);
+      await fetchTeachers(teacherPage);
+      setSuccess("Teacher deleted successfully.");
+      toast({ variant: "success", title: "Teacher deleted", description: "Teacher was deleted." });
+    } catch (err: any) {
+      const msg = err.response?.data?.message || "Failed to delete teacher";
+      setError(msg);
+      toast({ variant: "error", title: "Delete failed", description: msg });
+    }
+  };
+
   const editStudent = (student: any) => {
     setEditingStudentId(student._id);
     reset({
       name: student.userId?.name ?? "",
       email: student.userId?.email ?? "",
-      phone: student.userId?.phone ?? "",
+      phone: student.userId?.phone ?? student.phone ?? "",
       rollNo: student.rollNo ?? "",
       dob: student.dob?.slice(0, 10) ?? "",
       year: student.year ?? new Date().getFullYear(),
@@ -256,6 +321,27 @@ export default function AdminPage() {
         </section>
 
         <section className="rounded-lg border bg-white p-6 shadow-sm mb-6">
+          <h2 className="text-xl font-semibold mb-4">Create Teacher</h2>
+          <form onSubmit={editingTeacherId ? updateTeacher : createTeacher} className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <input className="rounded border p-2" placeholder="Name" value={teacherForm.name} onChange={(e) => setTeacherForm((f) => ({ ...f, name: e.target.value }))} required />
+            <input className="rounded border p-2" type="email" placeholder="Email" value={teacherForm.email} onChange={(e) => setTeacherForm((f) => ({ ...f, email: e.target.value }))} required />
+            <input className="rounded border p-2" type="password" placeholder="Password" value={teacherForm.password} onChange={(e) => setTeacherForm((f) => ({ ...f, password: e.target.value }))} required={!editingTeacherId} />
+            <input className="rounded border p-2" placeholder="Branch" value={teacherForm.branch} onChange={(e) => setTeacherForm((f) => ({ ...f, branch: e.target.value }))} required />
+            <div className="sm:col-span-2 flex gap-2">
+              <button type="submit" className="rounded bg-indigo-600 px-4 py-2 font-medium text-white hover:bg-indigo-500">{editingTeacherId ? "Update Teacher" : "Create Teacher"}</button>
+              {editingTeacherId && (
+                <button type="button" onClick={() => {
+                  setEditingTeacherId("");
+                  setTeacherForm({ name: "", email: "", password: "", branch: "" });
+                }} className="rounded border px-4 py-2">
+                  Cancel
+                </button>
+              )}
+            </div>
+          </form>
+        </section>
+
+        <section className="rounded-lg border bg-white p-6 shadow-sm mb-6">
           <h2 className="text-xl font-semibold mb-4">Assign Teacher to Class</h2>
           <form onSubmit={assignClasses} className="grid grid-cols-1 gap-3 sm:grid-cols-3">
             <select value={assignTeacherId} onChange={(e) => setAssignTeacherId(e.target.value)} className="rounded border p-2" required>
@@ -332,26 +418,40 @@ export default function AdminPage() {
           {teachers.length === 0 ? (
             <p className="text-sm text-slate-500">No teacher records yet. Register teachers using the register form.</p>
           ) : (
-            <table className="min-w-full text-left text-sm">
-              <thead>
-                <tr>
-                  <th className="px-4 py-2 text-slate-600">Name</th>
-                  <th className="px-4 py-2 text-slate-600">Email</th>
-                  <th className="px-4 py-2 text-slate-600">Branch</th>
-                  <th className="px-4 py-2 text-slate-600">Assigned Classes</th>
-                </tr>
-              </thead>
-              <tbody>
-                {teachers.map((teacher) => (
-                  <tr key={teacher._id} className="border-t border-slate-100">
-                    <td className="px-4 py-2 text-slate-800">{teacher.userId?.name}</td>
-                    <td className="px-4 py-2 text-slate-800">{teacher.userId?.email}</td>
-                    <td className="px-4 py-2 text-slate-800">{teacher.branch || 'General'}</td>
-                    <td className="px-4 py-2 text-slate-800">{(teacher.assignedClass || []).map((c: any) => `${c.year}${c.section}`).join(', ') || 'None'}</td>
+            <>
+              <table className="min-w-full text-left text-sm">
+                <thead>
+                  <tr>
+                    <th className="px-4 py-2 text-slate-600">Name</th>
+                    <th className="px-4 py-2 text-slate-600">Email</th>
+                    <th className="px-4 py-2 text-slate-600">Branch</th>
+                    <th className="px-4 py-2 text-slate-600">Assigned Classes</th>
+                    <th className="px-4 py-2 text-slate-600">Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {teachers.map((teacher) => (
+                    <tr key={teacher._id} className="border-t border-slate-100">
+                      <td className="px-4 py-2 text-slate-800">{teacher.userId?.name}</td>
+                      <td className="px-4 py-2 text-slate-800">{teacher.userId?.email}</td>
+                      <td className="px-4 py-2 text-slate-800">{teacher.branch || 'General'}</td>
+                      <td className="px-4 py-2 text-slate-800">{(teacher.assignedClass || []).map((c: any) => `${c.year}${c.section}`).join(', ') || 'None'}</td>
+                      <td className="px-4 py-2 flex gap-2">
+                        <button onClick={() => editTeacher(teacher)} className="rounded bg-blue-50 px-2 py-1 text-xs text-blue-700">Edit</button>
+                        <button onClick={() => deleteTeacher(teacher._id)} className="rounded bg-red-50 px-2 py-1 text-xs text-red-700">Delete</button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <div className="mt-4 flex items-center justify-between">
+                <p className="text-sm text-slate-600">Showing {teachers.length} of {teacherTotal}</p>
+                <div className="flex gap-2">
+                  <button onClick={() => fetchTeachers(teacherPage - 1)} disabled={teacherPage <= 1} className="rounded border px-3 py-1 disabled:opacity-50">Prev</button>
+                  <button onClick={() => fetchTeachers(teacherPage + 1)} disabled={teacherPage * teacherLimit >= teacherTotal} className="rounded border px-3 py-1 disabled:opacity-50">Next</button>
+                </div>
+              </div>
+            </>
           )}
         </section>
       </main>

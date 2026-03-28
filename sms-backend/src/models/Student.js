@@ -4,7 +4,7 @@ const studentSchema = new mongoose.Schema(
     {
         userId: {
             type: mongoose.Schema.Types.ObjectId,
-            ref: 'user',
+            ref: 'User',
             required: true,
         },
         name: {
@@ -17,6 +17,11 @@ const studentSchema = new mongoose.Schema(
             required: false,
             trim: true,
             lowercase: true
+        },
+        phone: {
+            type: String,
+            required: false,
+            trim: true
         },
         rollNo: {
             type: String,

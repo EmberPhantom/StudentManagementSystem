@@ -51,16 +51,20 @@ export const getAttendanceController = async (req, res) => {
 
 export const getAttendanceReportController = async (req, res) => {
   try {
+    let studentIdToFetch = req.params.studentId;
+
     if (req.user.role === 'student') {
       const student = await Student.findOne({ userId: req.user.id });
       if (!student) return res.status(404).json({ message: 'Student not found' });
-      if (student._id.toString() !== req.params.studentId) {
-        return res.status(403).json({ message: 'Not authorized to view this report' });
-      }
+
+      studentIdToFetch = student._id.toString();
     }
 
-    const report = await getAttendanceReportService(req.params.studentId);
+    if (!studentIdToFetch) {
+      return res.status(400).json({ message: 'Student ID is required' });
+    }
 
+    const report = await getAttendanceReportService(studentIdToFetch);
     res.json(report);
   } catch (error) {
     res.status(400).json({ message: error.message });

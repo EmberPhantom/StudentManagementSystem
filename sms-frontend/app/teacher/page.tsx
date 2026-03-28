@@ -26,6 +26,7 @@ export default function TeacherPage() {
   const [attendanceMap, setAttendanceMap] = useState<Record<string, "present" | "absent">>({});
   const [year, setYear] = useState<number>(new Date().getFullYear());
   const [section, setSection] = useState("A");
+  const [teacherBranch, setTeacherBranch] = useState<string>("");
   const [studentForm, setStudentForm] = useState<StudentInput>({
     name: "",
     email: "",
@@ -51,8 +52,25 @@ export default function TeacherPage() {
     }
   };
 
+  const fetchTeacher = async () => {
+    try {
+      const res = await api.get("/teachers/me");
+      setTeacherBranch(res.data.branch || "");
+      setStudentForm((prev) => ({ ...prev, branch: res.data.branch || "" }));
+    } catch (err: any) {
+      const msg = err.response?.data?.message || "Failed to load teacher profile";
+      setError(msg);
+      toast({ variant: "error", title: "Teacher load failed", description: msg });
+    }
+  };
+
   useEffect(() => {
-    fetchStudents();
+    const loadAll = async () => {
+      setLoading(true);
+      await Promise.all([fetchStudents(), fetchTeacher()]);
+      setLoading(false);
+    };
+    loadAll();
   }, []);
 
   const markAttendance = async () => {
@@ -84,7 +102,7 @@ export default function TeacherPage() {
     setError("");
     setResultMsg("");
     try {
-      const res = await api.post("/students", studentForm);
+      const res = await api.post("/students", { ...studentForm, branch: teacherBranch });
       setStudents((prev) => [res.data, ...prev]);
       setResultMsg("Student created successfully.");
       toast({ variant: "success", title: "Student added", description: "Student was added successfully." });
@@ -95,7 +113,7 @@ export default function TeacherPage() {
         rollNo: "",
         dob: "",
         year: new Date().getFullYear(),
-        branch: "",
+        branch: teacherBranch,
         section: "A",
       });
     } catch (err: any) {
@@ -124,7 +142,9 @@ export default function TeacherPage() {
             <input className="rounded border p-2" placeholder="Roll No" value={studentForm.rollNo} onChange={(e) => setStudentForm((s) => ({ ...s, rollNo: e.target.value }))} required />
             <input className="rounded border p-2" type="date" value={studentForm.dob} onChange={(e) => setStudentForm((s) => ({ ...s, dob: e.target.value }))} required />
             <input className="rounded border p-2" type="number" value={studentForm.year} onChange={(e) => setStudentForm((s) => ({ ...s, year: Number(e.target.value) }))} required />
-            <input className="rounded border p-2" placeholder="Branch" value={studentForm.branch} onChange={(e) => setStudentForm((s) => ({ ...s, branch: e.target.value }))} required />
+            <div className="rounded border p-2 bg-slate-50">
+              <p className="text-sm">Branch: {teacherBranch || studentForm.branch || "N/A"}</p>
+            </div>
             <input className="rounded border p-2" placeholder="Section" value={studentForm.section} onChange={(e) => setStudentForm((s) => ({ ...s, section: e.target.value }))} required />
             <button type="submit" className="sm:col-span-2 rounded bg-indigo-600 px-4 py-2 font-medium text-white hover:bg-indigo-500">Add Student</button>
           </form>

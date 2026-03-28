@@ -49,6 +49,45 @@ export const register = async(req, res) => {
      }
 };
 
+export const registerAdmin = async(req, res) => {
+    try {
+        const validateData = registerSchema.parse(req.body);
+
+        const user = await resgisterUser(validateData);
+
+        if (validateData.role === 'teacher') {
+            await Teacher.create({
+                userId: user._id,
+                branch: validateData.branch || 'General'
+            });
+        }
+
+        if (validateData.role === 'student') {
+            const rollNo = validateData.rollNo || `STU-${Date.now()}`;
+            const dob = validateData.dob ? new Date(validateData.dob) : new Date('2000-01-01');
+            const year = validateData.year || new Date().getFullYear();
+            const branch = validateData.branch || 'General';
+            const section = validateData.section || 'A';
+
+            await Student.create({
+                userId: user._id,
+                name: user.name,
+                email: user.email,
+                phone: user.phone?? '',
+                rollNo,
+                dob,
+                year,
+                branch,
+                section,
+            });
+        }
+
+        res.status(201).json({ message: 'User created by admin successfully' });
+    } catch (error) {
+        res.status(400).json({ message: error.message });
+    }
+};
+
 //LOGIN
 export const login = async(req, res) => {
     try{

@@ -38,6 +38,10 @@ export const createStudentService = async(data, teacher, role = 'teacher') => {
         if (!hasAccess) {
             throw new Error('You are not assigned to this class');
         }
+
+        if (teacher.branch && branch !== teacher.branch) {
+            throw new Error(`Teacher can only create students in branch ${teacher.branch}`);
+        }
     }
 
 
@@ -64,6 +68,7 @@ export const createStudentService = async(data, teacher, role = 'teacher') => {
         userId: user._id,
         name,
         email,
+        phone,
         rollNo,
         dob,
         year,
@@ -71,17 +76,22 @@ export const createStudentService = async(data, teacher, role = 'teacher') => {
         section
     });
 
-    return student;
+    return await Student.findById(student._id).populate('userId', 'name email phone role');
 }
 
 
 
 
 /* ---------- GET STUDENT SERVICE ---------- */
-export const getStudentService = async(query, teacher) => {
+export const getStudentService = async(query, teacher, user) => {
     const { page = 1, limit = 10, year, section, branch } = query;
 
     const filter = {};
+
+    if (user && user.role === 'student') {
+        const student = await Student.findOne({ userId: user.id }).populate('userId', 'name email phone role');
+        return { students: student ? [student] : [], total: student ? 1 : 0 };
+    }
 
     if (year) filter.year = year;
     if (section) filter.section = section;
@@ -139,7 +149,14 @@ export const updateStudentService = async (id, data) => {
         await User.findByIdAndUpdate(student.userId, userFields, { new: true });
     }
 
-    return await Student.findByIdAndUpdate(id, fields, { new: true });
+    const updatedStudent = await Student.findByIdAndUpdate(id, fields, { new: true });
+
+    if (userFields.phone) {
+        // Ensure Student document phone sync if person updates phone
+        await Student.findByIdAndUpdate(id, { phone: userFields.phone });
+    }
+
+    return await Student.findById(updatedStudent._id).populate('userId', 'name email phone role');
 };
 
 

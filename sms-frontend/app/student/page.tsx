@@ -8,53 +8,48 @@ import { useToast } from "@/components/ui/toast";
 export default function StudentPage() {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [students, setStudents] = useState<any[]>([]);
-  const [selectedId, setSelectedId] = useState("");
-  const [report, setReport] = useState<any[]>([]);
+  const [student, setStudent] = useState<any>(null);
+  const [report, setReport] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [reportLoading, setReportLoading] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
-    const loadStudents = async () => {
+    const loadStudent = async () => {
       try {
-        const res = await api.get("/students", { params: { page: 1, limit: 20 } });
-        const list = res.data.students || [];
-        setStudents(list);
-        if (list.length > 0) {
-          setSelectedId(list[0]._id);
-        }
+        const res = await api.get("/students/me");
+        setStudent(res.data);
       } catch (err: any) {
-        const msg = err.response?.data?.message || "Failed to load students";
+        const msg = err.response?.data?.message || "Failed to load student record";
         setError(msg);
         toast({ variant: "error", title: "Load failed", description: msg });
       } finally {
         setLoading(false);
       }
     };
-    loadStudents();
+    loadStudent();
   }, []);
 
-  const fetchReport = async (studentId: string) => {
-    if (!studentId) return;
-    setReportLoading(true);
-    setError("");
-    try {
-      const res = await api.get(`/attendance/report/${studentId}`);
-      setReport(res.data || []);
-    } catch (err: any) {
-      const msg = err.response?.data?.message || "Unable to fetch attendance report";
-      setError(msg);
-      setReport([]);
-      toast({ variant: "error", title: "Report failed", description: msg });
-    } finally {
-      setReportLoading(false);
-    }
-  };
-
   useEffect(() => {
-    if (selectedId) fetchReport(selectedId);
-  }, [selectedId]);
+    const loadReport = async () => {
+      if (!student) return;
+      setReportLoading(true);
+      setError("");
+      try {
+        const res = await api.get(`/attendance/report/self`);
+        setReport(res.data || {});
+      } catch (err: any) {
+        const msg = err.response?.data?.message || "Unable to fetch attendance report";
+        setError(msg);
+        setReport([]);
+        toast({ variant: "error", title: "Report failed", description: msg });
+      } finally {
+        setReportLoading(false);
+      }
+    };
+
+    loadReport();
+  }, [student]);
 
   return (
     <RequireAuth role="student">
@@ -69,22 +64,16 @@ export default function StudentPage() {
         {error && <div className="mb-4 rounded-lg border border-red-300 bg-red-50 p-4 text-red-700">{error}</div>}
 
         {loading ? (
-          <p>Loading student list...</p>
-        ) : (
-          <div className="mb-4 flex items-center gap-4">
-            <label className="font-medium">Student</label>
-            <select
-              value={selectedId}
-              onChange={(e) => setSelectedId(e.target.value)}
-              className="rounded border px-3 py-2"
-            >
-              {students.map((student) => (
-                <option key={student._id} value={student._id}>
-                  {student.name} ({student.rollNo})
-                </option>
-              ))}
-            </select>
+          <p>Loading your student record...</p>
+        ) : student ? (
+          <div className="mb-4 rounded-lg border bg-white p-4 shadow-sm">
+            <p className="font-semibold">Student:</p>
+            <p>{student.userId?.name || student.name}</p>
+            <p className="text-sm text-slate-500">Roll No: {student.rollNo}</p>
+            <p className="text-sm text-slate-500">Branch: {student.branch}</p>
           </div>
+        ) : (
+          <p>No student record found.</p>
         )}
 
         {reportLoading ? (
@@ -92,14 +81,14 @@ export default function StudentPage() {
         ) : (
           <div className="rounded-lg border bg-white p-4 shadow-sm">
             <h2 className="font-semibold">Attendance</h2>
-            {report.length === 0 ? (
-              <p className="mt-2 text-sm text-slate-500">No attendance records available.</p>
+            {!report || Object.keys(report).length === 0 ? (
+              <p className="mt-2 text-sm text-slate-500">No attendance data available.</p>
             ) : (
-              <ul className="mt-2 list-disc pl-5 text-sm text-slate-700">
-                {report.map((rec: any, i: number) => (
-                  <li key={i}>{rec.date || rec._id}: {rec.status}</li>
-                ))}
-              </ul>
+              <div className="mt-2 space-y-1 text-sm text-slate-700">
+                <p>Total records: {report.total}</p>
+                <p>Present: {report.present}</p>
+                <p>Attendance: {report.percentage}%</p>
+              </div>
             )}
           </div>
         )}

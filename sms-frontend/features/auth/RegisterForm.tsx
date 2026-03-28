@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import api from "@/lib/api";
 import { useAuth } from "@/features/auth/AuthContext";
@@ -12,7 +12,7 @@ export default function RegisterForm() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const router = useRouter();
-  const { login } = useAuth();
+  const { user, login } = useAuth();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -21,6 +21,12 @@ export default function RegisterForm() {
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
+  useEffect(() => {
+    if (user?.role === "admin") {
+      router.replace("/admin");
+    }
+  }, [user, router]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
@@ -28,10 +34,17 @@ export default function RegisterForm() {
     setLoading(true);
     try {
       await api.post("/auth/register", form);
-      await login(form.email, form.password);
-      setSuccess("Registration successful! Redirecting to dashboard...");
-      toast({ variant: "success", title: "Registration successful", description: "Welcome! Redirecting to dashboard." });
-      router.push("/dashboard");
+
+      if (user?.role === "admin") {
+        setSuccess("Teacher created successfully. You are still logged in as admin.");
+        toast({ variant: "success", title: "Teacher added", description: "Teacher account created successfully." });
+        router.push("/admin");
+      } else {
+        await login(form.email, form.password);
+        setSuccess("Registration successful! Redirecting to dashboard...");
+        toast({ variant: "success", title: "Registration successful", description: "Welcome! Redirecting to dashboard." });
+        router.push("/dashboard");
+      }
     } catch (err: any) {
       const msg = err.response?.data?.message || "Registration failed";
       setError(msg);

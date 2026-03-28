@@ -29,4 +29,12 @@ router.get(
   getAttendanceReportController
 );
 
+// Student self report
+router.get(
+  '/report/self',
+  authMiddleware,
+  permit(PERMISSIONS.VIEW_ATTENDANCE),
+  getAttendanceReportController
+);
+
 export default router;

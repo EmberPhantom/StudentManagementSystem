@@ -1,6 +1,7 @@
 import { createStudentSchema } from "../validators/student.validator.js";
 import { createStudentService, deleteStudentService, getStudentService, updateStudentService } from "../services/student.service.js";
 import Teacher from "../models/Teacher.js";
+import Student from "../models/Student.js";
 
 /* ---------- CREATE STUDENT CONTROLLER ---------- */
 export const createStudentController = async (req, res) => {
@@ -30,7 +31,7 @@ export const getStudentController = async (req,res) => {
     try{
         const teacher = await Teacher.findOne({ userId: req.user.id });
 
-        const result = await getStudentService(req.query, teacher);
+        const result = await getStudentService(req.query, teacher, req.user);
 
         res.json(result);
     } catch(error) {
@@ -38,12 +39,44 @@ export const getStudentController = async (req,res) => {
     }
 }
 
-
+/* ---------- GET CURRENT STUDENT CONTROLLER ---------- */
+export const getCurrentStudentController = async (req,res) => {
+    try {
+        const student = await Student.findOne({ userId: req.user.id }).populate('userId', 'name email phone role');
+        if (!student) {
+            return res.status(404).json({ message: 'Student not found' });
+        }
+        res.json(student);
+    } catch(error) {
+        res.status(400).json({ message: error.message });
+    }
+}
 
 
 /* ---------- UPDATE STUDENT CONTROLLER ---------- */
 export const updateStudentController = async (req, res) => {
     try{
+        const teacher = await Teacher.findOne({ userId: req.user.id });
+        const existingStudent = await Student.findById(req.params.id);
+
+        if (!existingStudent) {
+            return res.status(404).json({ message: 'Student not found' });
+        }
+
+        if (req.user.role === 'teacher') {
+            if (!teacher) {
+                return res.status(403).json({ message: 'Not a teacher' });
+            }
+
+            const allowed = teacher.assignedClass.some((cls) => cls.year === existingStudent.year && cls.section === existingStudent.section);
+            if (!allowed) {
+                return res.status(403).json({ message: 'Not authorized to update this student' });
+            }
+            if (teacher.branch && existingStudent.branch !== teacher.branch) {
+                return res.status(403).json({ message: 'Not authorized to update student in this branch' });
+            }
+        }
+
         const student = await updateStudentService(req.params.id, req.body);
 
         res.json(student);
