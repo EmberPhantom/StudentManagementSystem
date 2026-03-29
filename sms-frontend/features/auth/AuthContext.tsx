@@ -38,7 +38,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         fetchUser();
     }, []);
 
-    const login = async(email: string, password: string) => {
+    const login = async(email: string, password: string) => { 
         await api.post("/auth/login", {email, password});
         await fetchUser();
     };

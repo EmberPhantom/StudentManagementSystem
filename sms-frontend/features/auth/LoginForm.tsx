@@ -12,7 +12,7 @@ export default function LoginForm() {
     const [loading, setLoading] = useState(false);
     const router = useRouter();
     const { login } = useAuth();
-    const { toast } = useToast();
+    const { toast } = useToast(); 
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setForm({ ...form, [e.target.name]: e.target.value });

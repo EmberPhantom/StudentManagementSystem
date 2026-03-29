@@ -99,6 +99,9 @@ export const deleteStudentController = async (req, res) => {
     }
 }
 
+
+
+/* --------- UPDATE STUDENT CONTROLLER --------- */
 export const updateStudentPasswordController = async (req, res) => {
     try {
         const { password } = req.body;

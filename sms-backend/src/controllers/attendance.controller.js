@@ -4,6 +4,7 @@ import Teacher from "../models/Teacher.js";
 import Student from "../models/Student.js";
 
 
+/* BULK ATTENDANCE CONTROLLER */
 export const markBulkAttedanceController = async (req, res) => {
     try{
 
@@ -26,7 +27,7 @@ export const markBulkAttedanceController = async (req, res) => {
 
 
 
-
+/* ATTENDANCE CONTROLLER */
 export const getAttendanceController = async (req, res) => {
   try {
     const teacher = await Teacher.findOne({ userId: req.user.id });
@@ -48,7 +49,7 @@ export const getAttendanceController = async (req, res) => {
 
 
 
-
+/* --------- ATTENDANCE REPORT -------- */
 export const getAttendanceReportController = async (req, res) => {
   try {
     let studentIdToFetch = req.params.studentId;

@@ -63,7 +63,7 @@ export const createStudentService = async(data, teacher, role = 'teacher') => {
 
 
 
-/* ---------- CREATE STUDENT SERVICE ---------- */
+/* ---------- STUDENT SERVICE ---------- */
     const student = await Student.create({
         userId: user._id,
         name,

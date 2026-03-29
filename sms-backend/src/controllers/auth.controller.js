@@ -1,7 +1,7 @@
 import { resgisterUser, loginUser } from "../services/auth.service.js";
 import { registerSchema, loginSchema } from "../validators/auth.validators.js";
 import generateToken from '../utils/generateToken.js';
-import Teacher from '../models/Teacher.js';
+import Teacher from '../models/Teacher.js'; 
 import Student from '../models/Student.js';
 
 //REGISTER

@@ -1,6 +1,6 @@
 "use client";
 import { useAuth } from "./AuthContext";
-import { useRouter } from "next/navigation";
+import { useRouter } from "next/navigation"; 
 import { useEffect } from "react";
 
 export default function RequireAuth({ children, role }: { children: React.ReactNode, role?: string }){
