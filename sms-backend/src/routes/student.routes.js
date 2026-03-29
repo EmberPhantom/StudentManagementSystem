@@ -2,7 +2,7 @@ import express from "express";
 import authMiddleware from "../middleware/auth.middleware.js";
 import permit from "../middleware/permission.middleware.js";
 import { PERMISSIONS } from "../constants/roles.js";
-import { createStudentController, deleteStudentController, getStudentController, updateStudentController, getCurrentStudentController } from "../controllers/student.controller.js";
+import { createStudentController, deleteStudentController, getStudentController, updateStudentController, updateStudentPasswordController, getCurrentStudentController } from "../controllers/student.controller.js";
 
 const router = express.Router();
 
@@ -35,6 +35,13 @@ router.put(
     authMiddleware,
     permit(PERMISSIONS.UPDATE_STUDENT),
     updateStudentController
+)
+
+router.put(
+    '/:id/password',
+    authMiddleware,
+    permit(PERMISSIONS.UPDATE_STUDENT),
+    updateStudentPasswordController
 )
 
 // Delete Student -> Admin

@@ -8,5 +8,6 @@ export const createStudentSchema = z.object({
     dob: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid date format YYYY-MM-DD"),
     year: z.number().int().min(1900).max(2100),
     branch: z.string().min(1),
-    section: z.string().min(1)
+    section: z.string().min(1),
+    password: z.string().min(6).optional()
 });

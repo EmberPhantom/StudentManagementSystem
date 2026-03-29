@@ -98,3 +98,17 @@ export const deleteStudentController = async (req, res) => {
         res.status(400).json({ message:error.message })
     }
 }
+
+export const updateStudentPasswordController = async (req, res) => {
+    try {
+        const { password } = req.body;
+        if (!password || password.length < 6) {
+            return res.status(400).json({ message: 'Password must be at least 6 characters' });
+        }
+
+        const result = await updateStudentPasswordService(req.params.id, password);
+        res.json(result);
+    } catch (error) {
+        res.status(400).json({ message: error.message });
+    }
+};

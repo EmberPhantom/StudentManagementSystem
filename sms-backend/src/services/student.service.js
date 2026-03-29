@@ -16,9 +16,10 @@ export const createStudentService = async(data, teacher, role = 'teacher') => {
         section
     } = data;
 
-    const existingUser = await User.findOne({ email });
+    const normalizedEmail = email.trim().toLowerCase();
+    const existingUser = await User.findOne({ email: normalizedEmail });
     if (existingUser) {
-        throw new Error(`Email already exists: ${email}`);
+        throw new Error(`Email already exists: ${normalizedEmail}`);
     }
 
 
@@ -48,13 +49,12 @@ export const createStudentService = async(data, teacher, role = 'teacher') => {
 
 
 /* ---------- CREATE STUDENT AS A USER ---------- */
-    const password = dob.replaceAll('-', '');
-    const hasdhedPassword = await bcrypt.hash(password, 10);
+    const passwordToUse = data.password ? data.password : dob.replace(/-/g, '');
+    const hasdhedPassword = await bcrypt.hash(passwordToUse, 10);
 
-    // Creating User
     const user = await User.create({
         name,
-        email,
+        email: normalizedEmail,
         phone,
         password: hasdhedPassword,
         role: 'student'
@@ -131,13 +131,20 @@ export const updateStudentService = async (id, data) => {
     }
 
     if (fields.email) {
-      const existingUser = await User.findOne({ email: fields.email, _id: { $ne: student.userId } });
+      const normalizedEmail = fields.email.trim().toLowerCase();
+      const existingUser = await User.findOne({ email: normalizedEmail, _id: { $ne: student.userId } });
       if (existingUser) {
-        throw new Error(`Email already exists: ${fields.email}`);
+        throw new Error(`Email already exists: ${normalizedEmail}`);
       }
-      userFields.email = fields.email;
-      fields.email = fields.email;
+      userFields.email = normalizedEmail;
+      fields.email = normalizedEmail;
     }
+
+    if (fields.password) {
+      userFields.password = await bcrypt.hash(fields.password, 10);
+      delete fields.password;
+    }
+
     if (fields.phone) {
       userFields.phone = fields.phone;
       fields.phone = fields.phone;
@@ -152,7 +159,6 @@ export const updateStudentService = async (id, data) => {
     const updatedStudent = await Student.findByIdAndUpdate(id, fields, { new: true });
 
     if (userFields.phone) {
-        // Ensure Student document phone sync if person updates phone
         await Student.findByIdAndUpdate(id, { phone: userFields.phone });
     }
 
@@ -162,11 +168,23 @@ export const updateStudentService = async (id, data) => {
 
 
 
-/* ---------- DELETE STUDENT STUDENT ---------- */
+/* ---------- DELETE STUDENT DETAIL ---------- */
 export const deleteStudentService = async (id) => {
     const student = await Student.findById(id);
     if (!student) throw new Error('student not found');
 
     await User.findByIdAndDelete(student.userId);
     return await Student.findByIdAndDelete(id);
+};
+
+
+/* ---------- UPDATE STUDENT DETAILS --------- */
+export const updateStudentPasswordService = async (id, newPassword) => {
+    const student = await Student.findById(id);
+    if (!student) throw new Error('student not found');
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    await User.findByIdAndUpdate(student.userId, { password: hashedPassword }, { new: true });
+
+    return { message: 'Student password updated successfully' };
 };

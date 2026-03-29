@@ -28,7 +28,8 @@ export const ROLE_PERMISSIONS = {
         'update_student',
         'mark_attendance',
         'view_student',
-        'create_student'
+        'create_student',
+        'view_attendance'
     ],
     student: [
         'view_student',

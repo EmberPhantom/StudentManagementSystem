@@ -17,6 +17,7 @@ const studentSchema = z.object({
   year: z.number().int().min(1900).max(2100),
   branch: z.string().min(1, "Branch is required"),
   section: z.string().min(1, "Section is required"),
+  password: z.string().min(6, "Password must be at least 6 characters").optional(),
 });
 
 type StudentInput = z.infer<typeof studentSchema>;
@@ -47,6 +48,7 @@ export default function AdminPage() {
     year: new Date().getFullYear(),
     branch: "",
     section: "A",
+    password: "",
   });
 
   const [editingStudentId, setEditingStudentId] = useState<string>("");
@@ -108,6 +110,7 @@ export default function AdminPage() {
       year: new Date().getFullYear(),
       branch: "",
       section: "A",
+      password: "",
     },
   });
 
@@ -121,6 +124,7 @@ export default function AdminPage() {
       year: new Date().getFullYear(),
       branch: "",
       section: "A",
+      password: "",
     });
     setEditingStudentId("");
   };
@@ -218,6 +222,7 @@ export default function AdminPage() {
       year: student.year ?? new Date().getFullYear(),
       branch: student.branch ?? "",
       section: student.section ?? "A",
+      password: "",
     });
   };
 
@@ -231,6 +236,23 @@ export default function AdminPage() {
       const msg = err.response?.data?.message || "Failed to delete student";
       setError(msg);
       toast({ variant: "error", title: "Delete failed", description: msg });
+    }
+  };
+
+  const resetStudentPassword = async (id: string) => {
+    const newPassword = window.prompt("Enter new password for student (min 6 chars):");
+    if (!newPassword || newPassword.length < 6) {
+      toast({ variant: "error", title: "Password reset failed", description: "Password must be at least 6 characters." });
+      return;
+    }
+
+    try {
+      await api.put(`/students/${id}/password`, { password: newPassword });
+      toast({ variant: "success", title: "Password reset", description: "Student password has been updated." });
+    } catch (err: any) {
+      const msg = err.response?.data?.message || "Failed to reset password";
+      setError(msg);
+      toast({ variant: "error", title: "Password reset failed", description: msg });
     }
   };
 
@@ -306,6 +328,10 @@ export default function AdminPage() {
             <div>
               <input {...register("section")} className="rounded border p-2 w-full" placeholder="Section" />
               {errors.section && <p className="text-xs text-red-600 mt-1">{errors.section.message}</p>}
+            </div>
+            <div>
+              <input {...register("password")} className="rounded border p-2 w-full" type="password" placeholder="Password (optional)" />
+              {errors.password && <p className="text-xs text-red-600 mt-1">{errors.password.message}</p>}
             </div>
             <div className="sm:col-span-2 flex gap-2">
               <button type="submit" className="rounded bg-indigo-600 px-4 py-2 font-medium text-white hover:bg-indigo-500">
@@ -390,6 +416,7 @@ export default function AdminPage() {
                         <td className="px-4 py-2 text-slate-800">{student.section}</td>
                         <td className="px-4 py-2 flex gap-2">
                           <button onClick={() => editStudent(student)} className="rounded bg-blue-50 px-2 py-1 text-xs text-blue-700">Edit</button>
+                          <button onClick={() => resetStudentPassword(student._id)} className="rounded bg-orange-50 px-2 py-1 text-xs text-orange-700">Reset PW</button>
                           <button onClick={() => deleteStudent(student._id)} className="rounded bg-red-50 px-2 py-1 text-xs text-red-700">Delete</button>
                         </td>
                       </tr>
